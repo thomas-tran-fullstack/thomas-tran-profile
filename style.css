@@ -158,7 +158,8 @@ nav a:hover { color: white; }
 @media (max-width: 768px) {
 
   header nav {
-    display: none;
+    flex-wrap: wrap;
+    width: 100%;
   }
 
   .hero {
@@ -516,3 +517,4 @@ nav a:hover { color: white; }
     padding-right: 0;
   }
 }
+
