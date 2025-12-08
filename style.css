@@ -11,36 +11,36 @@ body {
 /* HEADER */
 header {
   width: 100%;
-  padding: 20px 8%;
-  position: fixed;
-  top: 0;
-  backdrop-filter: blur(12px);
+  padding: 20px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 999;
+  background: #111;
+  color: white;
 }
 
 .logo {
-  font-size: 26px;
-  font-weight: 900;
-  color: #c77dff;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 1px;
 }
 
-nav a {
-  margin: 0 12px;
-  font-size: 16px;
+nav.main-nav a {
+  margin-left: 25px;
   text-decoration: none;
-  color: #d5b4ff;
+  color: #ddd;
+  font-weight: 500;
 }
-nav a.active { color: #fff; }
-nav a:hover { color: white; }
+nav.main-nav a:hover,
+nav.main-nav a.active {
+  color: #fff;
+}
+.social img {
+  width: 28px;
+  margin-left: 15px;
+  filter: brightness(0) invert(1); /* icon trắng */
+}
 
-.social a {
-  margin-left: 10px;
-  font-size: 20px;
-  color: #c77dff;
-}
 .social a:hover { color: #fff; }
 
 /* HERO */
@@ -156,11 +156,38 @@ nav a:hover { color: white; }
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-
-  header nav {
-    flex-wrap: wrap;
-    width: 100%;
+  header {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+    padding: 25px;
   }
+
+  .main-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .main-nav a {
+    margin: 0;
+    padding: 8px 12px;
+    background: #1a1a1a;
+    border-radius: 6px;
+  }
+
+  .social {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  .social img {
+    width: 32px;
+    margin: 0;
+  }
+}
 
   .hero {
     flex-direction: column;
@@ -517,4 +544,5 @@ nav a:hover { color: white; }
     padding-right: 0;
   }
 }
+
 
