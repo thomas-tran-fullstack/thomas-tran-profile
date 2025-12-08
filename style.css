@@ -6,41 +6,42 @@ body {
   font-family: Arial;
   color: #fff;
   overflow-x: hidden;
+  padding-top: 20px;
 }
 
 /* HEADER */
 header {
   width: 100%;
-  padding: 20px 40px;
+  padding: 20px 8%;
+  position: fixed;
+  top: 0;
+  backdrop-filter: blur(12px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #111;
-  color: white;
+  z-index: 999;
 }
 
 .logo {
-  font-size: 22px;
-  font-weight: bold;
-  letter-spacing: 1px;
+  font-size: 26px;
+  font-weight: 900;
+  color: #c77dff;
 }
 
-nav.main-nav a {
-  margin-left: 25px;
+nav a {
+  margin: 0 12px;
+  font-size: 16px;
   text-decoration: none;
-  color: #ddd;
-  font-weight: 500;
+  color: #d5b4ff;
 }
-nav.main-nav a:hover,
-nav.main-nav a.active {
-  color: #fff;
-}
-.social img {
-  width: 28px;
-  margin-left: 15px;
-  filter: brightness(0) invert(1); /* icon trắng */
-}
+nav a.active { color: #fff; }
+nav a:hover { color: white; }
 
+.social a {
+  margin-left: 10px;
+  font-size: 20px;
+  color: #c77dff;
+}
 .social a:hover { color: #fff; }
 
 /* HERO */
@@ -156,38 +157,54 @@ nav.main-nav a.active {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
+
+  body {
+    padding-top: 100px;
+  }
+
   header {
     flex-direction: column;
-    text-align: center;
-    gap: 20px;
-    padding: 25px;
+    padding: 20px 8%;
+    gap: 15px;
   }
 
-  .main-nav {
+  .logo {
+    font-size: 20px;
+    text-align: center;
+    width: 100%;
+  }
+
+  header nav {
     display: flex;
     flex-wrap: wrap;
+    width: 100%;
     justify-content: center;
-    gap: 12px;
+    gap: 15px;
+    order: 3;
   }
 
-  .main-nav a {
+  header nav a {
     margin: 0;
+    font-size: 14px;
     padding: 8px 12px;
-    background: #1a1a1a;
-    border-radius: 6px;
+    border-bottom: 1px solid transparent;
+  }
+
+  header nav a:hover {
+    border-bottom: 1px solid #fff;
   }
 
   .social {
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: 12px;
+    width: 100%;
+    order: 2;
   }
 
-  .social img {
-    width: 32px;
+  .social a {
     margin: 0;
   }
-}
 
   .hero {
     flex-direction: column;
@@ -544,5 +561,3 @@ nav.main-nav a.active {
     padding-right: 0;
   }
 }
-
-
