@@ -8,16 +8,72 @@ document.querySelectorAll(".fade").forEach(el => obs.observe(el));
 /* Reviews logic */
 const REVIEWS_KEY = 'site_reviews_v1';
 const SUBMIT_KEY = 'site_review_submitted_v1';
+const DEVICE_KEY = 'site_device_id_v1';
 let editingId = null;
+let useRemote = false;
+let firebaseDb = null;
 
-function getReviews(){
+function getDeviceId(){
+  let id = localStorage.getItem(DEVICE_KEY);
+  if(!id){ id = 'd_' + Date.now() + '_' + Math.floor(Math.random()*1000000); localStorage.setItem(DEVICE_KEY, id); }
+  return id;
+}
+
+function getReviewsLocal(){
   try{return JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]')}catch(e){return []}
 }
-function saveReviews(arr){ localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)) }
+function saveReviewsLocal(arr){ localStorage.setItem(REVIEWS_KEY, JSON.stringify(arr)) }
 
-function renderAverage(){
-  const reviews = getReviews();
-  if(!reviews.length){
+// Remote helpers (Firebase Firestore). Initialization happens lazily if config provided on window.
+function loadScript(src){ return new Promise((res, rej)=>{ const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+
+async function initRemoteIfNeeded(){
+  try{
+    if(window.REMOTE_BACKEND === 'firebase' && window.FIREBASE_CONFIG){
+      useRemote = true;
+      // load compat SDKs for simplicity
+      if(!window.firebase){
+        await loadScript('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
+        await loadScript('https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js');
+      }
+      try{ firebase.initializeApp(window.FIREBASE_CONFIG); firebaseDb = firebase.firestore(); }catch(e){ console.warn('Firebase init failed', e); useRemote=false }
+    }
+  }catch(e){ console.warn('Remote init error', e); useRemote=false }
+}
+
+async function getReviewsRemote(){
+  if(!firebaseDb) return [];
+  const snap = await firebaseDb.collection('reviews').get();
+  return snap.docs.map(d=> ({ ...(d.data()||{}), deviceId: d.id }));
+}
+
+async function saveReviewRemote(review){
+  if(!firebaseDb) return;
+  const id = getDeviceId();
+  review.time = Date.now();
+  await firebaseDb.collection('reviews').doc(id).set(review);
+  // mark this device as having submitted (store device id)
+  localStorage.setItem(SUBMIT_KEY, id);
+}
+
+async function deleteReviewRemoteByDeviceId(deviceId){
+  if(!firebaseDb) return false;
+  await firebaseDb.collection('reviews').doc(deviceId).delete();
+  const myId = localStorage.getItem(SUBMIT_KEY);
+  if(myId && String(myId) === String(deviceId)) localStorage.removeItem(SUBMIT_KEY);
+  return true;
+}
+
+// Generic getters/savers that work with either local or remote backend
+async function getAllReviews(){
+  if(useRemote) return await getReviewsRemote();
+  return getReviewsLocal();
+}
+function saveAllLocalReviews(arr){ saveReviewsLocal(arr); }
+
+async function renderAverage(){
+  const reviews = await getAllReviews();
+  if(!reviews || !reviews.length){
     const starEl = document.querySelector('#rate-stars .stars-text');
     if(starEl) starEl.style.setProperty('--pct','0%');
     const num = document.getElementById('avg-number'); if(num) num.textContent = '(0)';
@@ -53,17 +109,30 @@ function editReview(review){
   textEl.value = review.text || '';
   wordsLeft && (wordsLeft.textContent = Math.max(0,350 - (textEl.value||'').length));
   submit.textContent = 'Save changes';
-  editingId = String(review.time);
+  editingId = review.deviceId ? String(review.deviceId) : String(review.time);
   // scroll to form
   nameEl.scrollIntoView({behavior:'smooth', block:'center'});
 }
 
-function deleteReviewByTime(time){
-  const arr = getReviews().filter(rv=> String(rv.time) !== String(time));
-  saveReviews(arr);
-  // if this device had this review, clear key
-  const myId = localStorage.getItem(SUBMIT_KEY);
-  if(myId && String(myId) === String(time)) localStorage.removeItem(SUBMIT_KEY);
+async function deleteReviewByTime(time){
+  // time may be a numeric time (local mode) or a deviceId (remote mode)
+  if(useRemote){
+    // if time looks like device id, delete directly, otherwise find the doc by time
+    const maybeId = String(time);
+    if(maybeId.startsWith('d_')){
+      await deleteReviewRemoteByDeviceId(maybeId);
+    }else{
+      // find doc with matching time
+      const all = await getAllReviews();
+      const found = all.find(r=> String(r.time) === String(time));
+      if(found && found.deviceId) await deleteReviewRemoteByDeviceId(found.deviceId);
+    }
+  }else{
+    const arr = getReviewsLocal().filter(rv=> String(rv.time) !== String(time));
+    saveAllLocalReviews(arr);
+    const myId = localStorage.getItem(SUBMIT_KEY);
+    if(myId && String(myId) === String(time)) localStorage.removeItem(SUBMIT_KEY);
+  }
   // re-enable form for fresh submission (cleared)
   const nameEl = document.getElementById('r-name');
   const codeSel = document.querySelectorAll('input[name="r-code"]');
@@ -78,35 +147,37 @@ function deleteReviewByTime(time){
   if(submit){ submit.disabled=false; submit.textContent='Submit review'; }
   if(extra) extra.style.display='none';
   // update UI
-  renderReviewsList(); renderAverage();
+  await renderReviewsList(); await renderAverage();
 }
 
-function renderReviewsList(){
+async function renderReviewsList(){
   const container = document.getElementById('reviews');
   if(!container) return;
-  const all = getReviews() || [];
+  const all = await getAllReviews() || [];
   const myId = localStorage.getItem(SUBMIT_KEY);
-  // try to find exact match by stored id; if not found but submitted flag exists, fall back to newest review
-  let my = myId ? all.find(r=> String(r.time) === String(myId)) : null;
+  // find user's review: for remote we stored deviceId, for local we stored time
+  let my = null;
+  if(useRemote){ my = myId ? all.find(r=> String(r.deviceId) === String(myId)) : null; }
+  else { my = myId ? all.find(r=> String(r.time) === String(myId)) : null; }
   if(!my && myId && all.length){
-    // fallback: assume the most recent review is the user's
-    const sorted = all.slice().sort((a,b)=> b.time - a.time);
+    const sorted = all.slice().sort((a,b)=> (b.time||0) - (a.time||0));
     my = sorted[0];
   }
-  const others = all.filter(r=> !my || String(r.time) !== String(my.time)).sort((a,b)=> b.time - a.time);
+  const others = all.filter(r=> !my || (useRemote ? String(r.deviceId) !== String(my.deviceId) : String(r.time) !== String(my.time))).sort((a,b)=> (b.time||0) - (a.time||0));
   const ordered = [];
   if(my) ordered.push(my);
   ordered.push(...others);
   container.innerHTML = '';
   if(!ordered.length){ container.innerHTML = '<div class="muted">No reviews yet.</div>'; return }
   ordered.forEach(r=>{
-    const isMine = my && String(r.time) === String(my.time);
+    const isMine = my && (useRemote ? String(r.deviceId) === String(my.deviceId) : String(r.time) === String(my.time));
     const item = document.createElement('div'); item.className='review-item';
-    item.setAttribute('data-time', String(r.time));
+    item.setAttribute('data-time', String(r.time || ''));
+    const when = r.time ? new Date(r.time).toLocaleString() : '';
     item.innerHTML = `
       <div class="avatar"><img src="avatar.png" alt="avatar"></div>
       <div class="body">
-        <div class="meta"><strong>${escapeHtml(r.name)}</strong> <span class="stars">${r.total}★</span> <span class="time">${new Date(r.time).toLocaleString()}</span></div>
+        <div class="meta"><strong>${escapeHtml(r.name)}</strong> <span class="stars">${r.total}★</span> <span class="time">${when}</span></div>
         <p>${escapeHtml(r.text || '')}</p>
         ${isMine ? '<div class="inline-controls"><a href="#" class="inline-edit">Edit</a> <a href="#" class="inline-delete">Delete</a></div>' : ''}
       </div>`;
@@ -115,7 +186,7 @@ function renderReviewsList(){
       const editLink = item.querySelector('.inline-edit');
       const delLink = item.querySelector('.inline-delete');
       editLink && editLink.addEventListener('click', (ev)=>{ ev.preventDefault(); editReview(r); });
-      delLink && delLink.addEventListener('click', (ev)=>{ ev.preventDefault(); showConfirm('Are you sure want to delete your review?', ()=> deleteReviewByTime(r.time)); });
+      delLink && delLink.addEventListener('click', (ev)=>{ ev.preventDefault(); showConfirm('Are you sure want to delete your review?', ()=> deleteReviewByTime(useRemote ? r.deviceId : r.time)); });
     }
   });
 }
@@ -141,24 +212,25 @@ function showConfirm(message, onYes){
 function removeSampleReviews(){
   const targetName = 'Anh Thư';
   const targetText = 'Khùng';
-  const all = getReviews();
-  const removedTimes = [];
-  const kept = all.filter(r=>{
-    if(((r.name||'').trim() === targetName) && ((r.text||'').trim() === targetText)){
-      removedTimes.push(String(r.time));
-      return false;
+  (async ()=>{
+    const all = await getAllReviews();
+    const removed = [];
+    for(const r of all){
+      if(((r.name||'').trim() === targetName) && ((r.text||'').trim() === targetText)){
+        removed.push(r);
+        if(useRemote && r.deviceId) await deleteReviewRemoteByDeviceId(r.deviceId);
+      }
     }
-    return true;
-  });
-  if(removedTimes.length === 0){
-    alert('No matching sample reviews found.');
-    return;
-  }
-  saveReviews(kept);
-  const myId = localStorage.getItem(SUBMIT_KEY);
-  if(myId && removedTimes.includes(String(myId))) localStorage.removeItem(SUBMIT_KEY);
-  renderReviewsList(); renderAverage();
-  alert('Removed ' + removedTimes.length + ' sample review(s).');
+    if(!removed.length){ alert('No matching sample reviews found.'); return; }
+    if(!useRemote){
+      const kept = getReviewsLocal().filter(r=> !removed.find(x=> (String(x.time) === String(r.time))));
+      saveAllLocalReviews(kept);
+      const myId = localStorage.getItem(SUBMIT_KEY);
+      if(myId && removed.find(x=> String(x.time) === String(myId))) localStorage.removeItem(SUBMIT_KEY);
+    }
+    await renderReviewsList(); await renderAverage();
+    alert('Removed ' + removed.length + ' sample review(s).');
+  })();
 }
 
 // Show admin controls when ?admin=1 is present in the URL
@@ -207,7 +279,7 @@ function setupReviewForm(){
     msg && (msg.textContent = 'You have already submitted a review from this device. Thank you!');
   }
 
-  submit && submit.addEventListener('click', ()=>{
+  submit && submit.addEventListener('click', async ()=>{
     msg.textContent = '';
     if(!nameEl.value.trim()){ msg.textContent = 'Please enter your name to submit.'; return }
     // get selected stars; default to 5 if none selected
@@ -220,43 +292,63 @@ function setupReviewForm(){
     const text = textEl && textEl.value.trim() || '';
     const total = Math.round(((code+character+sat)/3)*10)/10;
 
-    const reviews = getReviews();
     if(editingId){
-      // update existing review
-      const idx = reviews.findIndex(rv=> String(rv.time) === String(editingId));
-      if(idx !== -1){
-        reviews[idx].name = nameEl.value.trim();
-        reviews[idx].code = code; reviews[idx].character = character; reviews[idx].sat = sat;
-        reviews[idx].text = text; reviews[idx].total = total; reviews[idx].time = Date.now();
-        saveReviews(reviews);
-        // update stored id to new timestamp
-        localStorage.setItem(SUBMIT_KEY, String(reviews[idx].time));
+      // edit path: update existing (remote or local)
+      if(useRemote){
+        const toSave = { name: nameEl.value.trim(), code, character, sat, text, total, time: Date.now() };
+        await saveReviewRemote(toSave);
         editingId = null;
         submit.textContent = 'Submit review';
-        // clear and disable form
-        nameEl.value=''; textEl.value=''; [...codeRadios].forEach(r=>r.checked=false); [...charRadios].forEach(r=>r.checked=false); [...satRadios].forEach(r=>r.checked=false);
         [nameEl,...codeRadios,...charRadios,...satRadios,textEl,submit].forEach(i=>i && (i.disabled = true));
         msg.textContent = 'You have already submitted a review from this device. Thank you!';
-        renderReviewsList(); renderAverage();
+        await renderReviewsList(); await renderAverage();
         return;
+      } else {
+        const reviews = getReviewsLocal();
+        const idx = reviews.findIndex(rv=> String(rv.time) === String(editingId));
+        if(idx !== -1){
+          reviews[idx].name = nameEl.value.trim();
+          reviews[idx].code = code; reviews[idx].character = character; reviews[idx].sat = sat;
+          reviews[idx].text = text; reviews[idx].total = total; reviews[idx].time = Date.now();
+          saveAllLocalReviews(reviews);
+          localStorage.setItem(SUBMIT_KEY, String(reviews[idx].time));
+          editingId = null;
+          submit.textContent = 'Submit review';
+          nameEl.value=''; textEl.value=''; [...codeRadios].forEach(r=>r.checked=false); [...charRadios].forEach(r=>r.checked=false); [...satRadios].forEach(r=>r.checked=false);
+          [nameEl,...codeRadios,...charRadios,...satRadios,textEl,submit].forEach(i=>i && (i.disabled = true));
+          msg.textContent = 'You have already submitted a review from this device. Thank you!';
+          await renderReviewsList(); await renderAverage();
+          return;
+        }
       }
     }
-    const newR = { name: nameEl.value.trim(), code, character, sat, text, total, time: Date.now() };
-    reviews.push(newR);
-    saveReviews(reviews);
-    localStorage.setItem(SUBMIT_KEY, String(newR.time));
-    // clear and disable form
-    nameEl.value=''; textEl.value=''; [...codeRadios].forEach(r=>r.checked=false); [...charRadios].forEach(r=>r.checked=false); [...satRadios].forEach(r=>r.checked=false);
-    [nameEl,...codeRadios,...charRadios,...satRadios,textEl,submit].forEach(i=>i && (i.disabled = true));
-    msg.textContent = 'You have already submitted a review from this device. Thank you!';
-    renderReviewsList(); renderAverage();
+    // create new
+    if(useRemote){
+      const toSave = { name: nameEl.value.trim(), code, character, sat, text, total, time: Date.now() };
+      await saveReviewRemote(toSave);
+      nameEl.value=''; textEl.value=''; [...codeRadios].forEach(r=>r.checked=false); [...charRadios].forEach(r=>r.checked=false); [...satRadios].forEach(r=>r.checked=false);
+      [nameEl,...codeRadios,...charRadios,...satRadios,textEl,submit].forEach(i=>i && (i.disabled = true));
+      msg.textContent = 'You have already submitted a review from this device. Thank you!';
+      await renderReviewsList(); await renderAverage();
+    } else {
+      const newR = { name: nameEl.value.trim(), code, character, sat, text, total, time: Date.now() };
+      const reviews = getReviewsLocal();
+      reviews.push(newR);
+      saveAllLocalReviews(reviews);
+      localStorage.setItem(SUBMIT_KEY, String(newR.time));
+      nameEl.value=''; textEl.value=''; [...codeRadios].forEach(r=>r.checked=false); [...charRadios].forEach(r=>r.checked=false); [...satRadios].forEach(r=>r.checked=false);
+      [nameEl,...codeRadios,...charRadios,...satRadios,textEl,submit].forEach(i=>i && (i.disabled = true));
+      msg.textContent = 'You have already submitted a review from this device. Thank you!';
+      await renderReviewsList(); await renderAverage();
+    }
   });
 }
 
 // populate average on index page and set click
-document.addEventListener('DOMContentLoaded', ()=>{
-  renderAverage();
-  renderReviewsList();
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await initRemoteIfNeeded();
+  await renderAverage();
+  await renderReviewsList();
   setupReviewForm();
   showAdminControls();
 });
