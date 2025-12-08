@@ -78,6 +78,11 @@ nav a:hover { color: white; }
   filter: brightness(1.25);
 }
 
+/* make hero image a positioning context (rate box placed below the image) */
+.hero-img { position: relative; display: flex; flex-direction: column; align-items: center; }
+.rate-box { text-align: center; margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; }
+.rate-box a { background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 10px; color:#ffd166 }
+
 /* PAGE COMMON */
 .page {
   padding: 160px 8% 80px;
@@ -153,6 +158,130 @@ nav a:hover { color: white; }
 .fade.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Reviews page styles */
+.reviews-container {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 28px;
+  padding: 40px 8%;
+}
+.review-form .card {
+  background: #1a0a2e;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);
+}
+.review-form label { display:block; margin-top:12px; font-size:14px; color:#d8c8ff }
+.review-form input, .review-form textarea {
+  width:100%;
+  margin-top:6px;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #2e1250;
+  background:#110616;
+  color:#fff;
+}
+
+/* star rating UI */
+.star-rating { display:inline-flex; flex-direction:row-reverse; gap:6px; align-items:center }
+.star-rating input { display:none }
+.star-rating label { cursor:pointer; font-size:20px; color:#777; transition:color .12s }
+.star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color:#ffd166 }
+
+.review-form .actions { margin-top:12px; display:flex; gap:12px; align-items:center }
+.review-form #r-submit { padding:10px 14px; background:#c77dff; color:#000; border-radius:8px; cursor:pointer }
+.review-form .muted { color:#c9bde6; font-size:13px }
+.reviews-container {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  /* large horizontal gap between form and reviews (120pt ~= 160px) */
+  gap: 120pt;
+  padding: 40px 8%;
+}
+.reviews-list { display:flex; flex-direction:column; align-items:flex-start; }
+.reviews-list h2 { margin:0 0 12px 0; color:#e8c2ff; text-align:left }
+.reviews-list #reviews { display:flex; flex-direction:column; gap:14px; align-items:flex-start }
+.review-item { display:flex; gap:12px; background:#1b1328; padding:14px; border-radius:12px; align-items:flex-start; width:100%; max-width:640px; transition: transform .18s ease, box-shadow .18s ease, opacity .25s ease; opacity:0; animation: appear .28s ease forwards }
+.review-item:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(140,77,255,0.12) }
+
+@keyframes appear {
+  from { transform: translateY(6px); opacity: 0 }
+  to { transform: translateY(0); opacity: 1 }
+}
+.review-item .avatar { width:56px; height:56px; border-radius:50%; overflow:hidden; flex:0 0 56px }
+.review-item .avatar img { width:100%; height:100%; object-fit:cover }
+.review-item .body { flex:1 }
+.review-item .meta { display:flex; gap:8px; align-items:center; color:#d4c2ff; font-size:13px }
+.review-item .meta .stars { font-weight:700; color:#ffd166 }
+.review-item .time { opacity:0.8; font-size:12px }
+.review-item p { margin-top:8px; color:#e8def6 }
+
+.inline-controls { margin-top:8px }
+.inline-controls a { color:#d0cfe6; font-size:13px; margin-right:10px; text-decoration:none; opacity:0.85 }
+.inline-controls a:hover { text-decoration:underline; color:#fff }
+
+/* Rate box under hero */
+.rate-box { text-align:center }
+/* style the Rate heading to match other h2 colors */
+.rate-box .rate-title { margin: 0; color: #a855f7; font-size:20px; display:inline-block; vertical-align:middle; font-weight:700 }
+.rate-box .avg-stars, .rate-box .avg-number { vertical-align: middle; }
+
+/* Confirm modal styling with entrance animation and polished buttons */
+#confirm-modal { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(rgba(6,3,10,0.6), rgba(6,3,10,0.75)); z-index:2000; backdrop-filter: blur(2px); }
+#confirm-modal .confirm-box { background: linear-gradient(180deg,#2a1830,#1a0f24); color:#fff; padding:22px; border-radius:12px; width:420px; max-width:92%; box-shadow: 0 12px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.03); transform-origin:center; animation: modalIn .32s cubic-bezier(.2,.9,.2,1); }
+#confirm-modal .confirm-message { font-size:16px; margin-bottom:16px; color:#e8dff8 }
+#confirm-modal .confirm-actions { display:flex; justify-content:flex-end; gap:10px }
+
+/* Cancel button: subtle translucent style */
+#confirm-modal .btn-cancel {
+  padding:10px 14px;
+  border-radius:10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.06);
+  color:#d4c2ff;
+  font-weight:600;
+  transition: transform .16s ease, background .18s ease, box-shadow .18s ease;
+}
+#confirm-modal .btn-cancel:hover { transform: translateY(-4px); background: linear-gradient(180deg,#35203e,#2a1630); color:#fff; box-shadow: 0 10px 28px rgba(30,10,50,0.32); }
+#confirm-modal .btn-cancel:active { transform: translateY(-1px) scale(.995); }
+
+/* Yes button: accent with soft pulse and pop on hover */
+#confirm-modal .btn-yes {
+  padding:10px 14px;
+  border-radius:10px;
+  background: linear-gradient(90deg,#ff8b8b,#ff5252);
+  color:#fff;
+  font-weight:800;
+  border: none;
+  box-shadow: 0 6px 18px rgba(255,82,82,0.16);
+  transition: transform .14s ease, box-shadow .16s ease, filter .14s ease;
+}
+#confirm-modal .btn-yes:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 18px 46px rgba(255,82,82,0.24); filter: brightness(1.03); }
+#confirm-modal .btn-yes:active { transform: translateY(-1px) scale(.995); }
+
+@keyframes modalIn {
+  from { transform: translateY(10px) scale(0.98); opacity: 0 }
+  to { transform: translateY(0) scale(1); opacity: 1 }
+}
+
+/* average stars visual (fractional) */
+.avg-stars { display:inline-block; text-decoration:none; margin-left:8px }
+.avg-stars .stars-text {
+  font-size:20px;
+  /* background will be set with CSS variable --pct (0% - 100%) */
+  --pct: 0%;
+  background: linear-gradient(90deg, #ffd166 var(--pct), #777 var(--pct));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.avg-number { margin-left:8px; color:#d4c2ff }
+
+
+@media (max-width: 900px) {
+  .reviews-container { grid-template-columns: 1fr; padding: 20px; gap: 20px; }
 }
 
 /* RESPONSIVE */

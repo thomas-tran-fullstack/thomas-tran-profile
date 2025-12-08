@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đánh giá | Thomas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo">THOMAS TRAN</div>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="introduce.html">Introduce</a>
+    <a href="skill.html">Skills</a>
+    <a href="certificates.html">Certificates</a>
+    <a href="contact.html">Contact</a>
+    <a action="active" href="reviews.html">Review</a>
+  </nav>
+
+  <div class="social">
+    <a href="index.html"><img src="github.png" alt="github"></a>
+    <a href="index.html"><img src="facebook.png" alt="facebook"></a>
+    <a href="index.html"><img src="instagram.png" alt="instagram"></a>
+  </div>
+</header>
+
+<section class="page">
+  <h1 class="fade">Reviews</h1>
+  <p>Please leave a review (one review per device).</p>
+</section>
+
+<main class="reviews-container">
+  <aside class="review-form">
+    <div class="card">
+      <h2>Submit a review</h2>
+
+      <label for="r-name">Your name *</label>
+      <input id="r-name" type="text" placeholder="Enter your name" />
+
+      <label>Code Skill *</label>
+      <div class="star-rating" id="r-code-rating">
+        <input type="radio" id="code-5" name="r-code" value="5"><label for="code-5">★</label>
+        <input type="radio" id="code-4" name="r-code" value="4"><label for="code-4">★</label>
+        <input type="radio" id="code-3" name="r-code" value="3"><label for="code-3">★</label>
+        <input type="radio" id="code-2" name="r-code" value="2"><label for="code-2">★</label>
+        <input type="radio" id="code-1" name="r-code" value="1"><label for="code-1">★</label>
+      </div>
+
+      <div id="extra-criteria" style="display:none">
+        <label>Personality</label>
+        <div class="star-rating" id="r-character-rating">
+          <input type="radio" id="char-5" name="r-character" value="5"><label for="char-5">★</label>
+          <input type="radio" id="char-4" name="r-character" value="4"><label for="char-4">★</label>
+          <input type="radio" id="char-3" name="r-character" value="3"><label for="char-3">★</label>
+          <input type="radio" id="char-2" name="r-character" value="2"><label for="char-2">★</label>
+          <input type="radio" id="char-1" name="r-character" value="1"><label for="char-1">★</label>
+        </div>
+
+        <label>Satisfaction</label>
+        <div class="star-rating" id="r-sat-rating">
+          <input type="radio" id="sat-5" name="r-sat" value="5"><label for="sat-5">★</label>
+          <input type="radio" id="sat-4" name="r-sat" value="4"><label for="sat-4">★</label>
+          <input type="radio" id="sat-3" name="r-sat" value="3"><label for="sat-3">★</label>
+          <input type="radio" id="sat-2" name="r-sat" value="2"><label for="sat-2">★</label>
+          <input type="radio" id="sat-1" name="r-sat" value="1"><label for="sat-1">★</label>
+        </div>
+
+        <label for="r-text">Review (up to 350 characters)</label>
+        <textarea id="r-text" rows="6" maxlength="350" placeholder="Write your review..."></textarea>
+        <div class="meta">Characters left: <span id="words-left">350</span></div>
+      </div>
+
+      <div class="actions">
+        <button id="r-submit">Submit review</button>
+        <button id="admin-clear-sample" style="display:none; margin-left:8px; background:#6b5cff; color:#fff; border-radius:8px; padding:8px 10px; border:none;">Remove sample reviews</button>
+        <div id="form-message" class="muted"></div>
+      </div>
+    </div>
+  </aside>
+  <section class="reviews-list">
+    <h2>Previous reviews</h2>
+    <div id="reviews"></div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

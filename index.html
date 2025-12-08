@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="logo.jpg">
   <title>Thomas | Home</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -14,11 +13,12 @@
   <div class="logo">THOMAS TRAN</div>
 
   <nav>
-    <a href="index.html">Home</a>
+    <a action="active" href="index.html">Home</a>
     <a href="introduce.html">Introduce</a>
     <a href="skill.html">Skills</a>
     <a href="certificates.html">Certificates</a>
     <a href="contact.html">Contact</a>
+    <a href="reviews.html">Review</a>
   </nav>
 
   <div class="social">
@@ -46,10 +46,16 @@
 
   <div class="hero-img fade">
     <img src="IMG_0141.JPG" />
+    <div class="rate-box">
+      <span class="rate-title">Rate</span>
+      <a id="rate-stars" class="avg-stars" href="reviews.html">
+        <span class="stars-text">★★★★★</span>
+      </a>
+      <span class="avg-number" id="avg-number">(-)</span>
+    </div>
   </div>
 </section>
 
 <script src="script.js"></script>
 </body>
 </html>
-
